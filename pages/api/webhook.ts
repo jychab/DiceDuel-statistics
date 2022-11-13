@@ -2,7 +2,7 @@
 import axios from "axios";
 import { RawData, DiscordResponse } from "../../types";
 const DISCORD_URL = process.env.DISCORD_WEBHOOK_URL;
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method == "POST") {
     console.log(req.body[0]);
     try {
@@ -15,21 +15,21 @@ export default function handler(req, res) {
         message = `${body.feePayer} won ${
           (feeCollector.nativeBalanceChange * 100) / 3000000000
         } sol!`;
-        toDiscord("Game Completed!", message, body.signature);
+        await toDiscord("Game Completed!", message, body.signature);
       } else if (body.nativeTransfers.length > 0) {
         let nativeTransfer = body.nativeTransfers[0];
         if (nativeTransfer.amount == 100000000) {
           message = `${nativeTransfer.fromUserAccount} bet 0.1 Sol!`;
-          toDiscord("Game Initiated!", message, body.signature);
+          await toDiscord("Game Initiated!", message, body.signature);
         } else if (nativeTransfer.amount == 500000000) {
           message = `${nativeTransfer.fromUserAccount} bet 0.5 Sol!`;
-          toDiscord("Game Initiated!", message, body.signature);
+          await toDiscord("Game Initiated!", message, body.signature);
         } else if (nativeTransfer.amount == 1000000000) {
           message = `${nativeTransfer.fromUserAccount} bet 1 Sol!`;
-          toDiscord("Game Initiated!", message, body.signature);
+          await toDiscord("Game Initiated!", message, body.signature);
         } else if (nativeTransfer.amount == 5000000000) {
           message = `${nativeTransfer.fromUserAccount} bet 5 Sol!`;
-          toDiscord("Game Initiated!", message, body.signature);
+          await toDiscord("Game Initiated!", message, body.signature);
         } else {
           message = "Probably some other transaction";
         }
@@ -45,8 +45,8 @@ export default function handler(req, res) {
   }
 }
 
-const postToDiscord = (response: DiscordResponse) => {
-  axios.post(DISCORD_URL, {
+const postToDiscord = async (response: DiscordResponse) => {
+  await axios.post(DISCORD_URL, {
     embeds: [
       {
         title: response.title,
@@ -61,12 +61,12 @@ const postToDiscord = (response: DiscordResponse) => {
     ],
   });
 };
-function toDiscord(title: string, message: any, signature: string) {
+async function toDiscord(title: string, message: any, signature: string) {
   let response = {
     title: title,
     description: message,
     signature: signature,
   };
   console.log(response);
-  postToDiscord(response);
+  await postToDiscord(response);
 }
