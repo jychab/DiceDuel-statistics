@@ -4,9 +4,9 @@ import { RawData, DiscordResponse } from "../../types";
 const DISCORD_URL = process.env.DISCORD_WEBHOOK_URL;
 export default function handler(req, res) {
   if (req.method == "POST") {
-    console.log(req.body);
+    console.log(req.body[0]);
     try {
-      let body: RawData = req.body;
+      let body: RawData = req.body[0];
       let feeCollector = body.accountData.find(
         (data) => data.account == "9RbPXewKbBqr6uNQhbzm3iejzpyCq5YucCCaSUSDZPQF"
       );
