@@ -1,6 +1,6 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import axios from "axios";
-import { parseData } from "../../../helper/utils";
+import { parseData } from "../helper/utils";
 const DISCORD_URL_WH = process.env.DISCORD_WEBHOOK_URL;
 let feePayerEscrowMap = new Map<string, string>();
 export default async function handler(req, res) {

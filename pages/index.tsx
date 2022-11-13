@@ -2,8 +2,8 @@ import Head from "next/head";
 import styles from "../styles/Home.module.css";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Stats, PlayerStats, RawData } from "../../helper/types";
-import { parseData } from "../../helper/utils";
+import { Stats, PlayerStats, RawData } from "./helper/types";
+import { parseData } from "./helper/utils";
 export default function Home() {
   const [stats, setStats] = useState<Stats>({
     gamesPlayed: 0,
