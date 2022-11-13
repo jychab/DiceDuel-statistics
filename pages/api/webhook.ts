@@ -1,8 +1,11 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import axios from "axios";
+import { RawData } from "../../helper/types";
 import { parseData } from "../../helper/utils";
 const DISCORD_URL_WH = process.env.DISCORD_WEBHOOK_URL;
-let feePayerEscrowMap = new Map<string, string>();
+const apiURL = "https://api.helius.xyz/v0/addresses";
+const resource = "transactions";
+const options = `?api-key=${process.env.HELIUS_API_KEY}`;
 export default async function handler(req, res) {
   if (req.method == "POST") {
     console.log(req.body);
@@ -15,8 +18,10 @@ export default async function handler(req, res) {
           result.escrowAccount.length == 2
         ) {
           result.escrowAccount.forEach(async (account) => {
-            const opponent = feePayerEscrowMap.get(account);
-            if (opponent != undefined && opponent !== result.feePayer) {
+            const url = `${apiURL}/${account}/${resource}${options}`;
+            const response: [RawData] = (await axios.get(url)).data;
+            let opponent = response[0].feePayer;
+            if (opponent !== result.feePayer) {
               await toDiscordWH(
                 result.state,
                 `${result.feePayer} rolled against ${opponent} and won ${result.winnings} SOL!`,
@@ -24,11 +29,6 @@ export default async function handler(req, res) {
               );
             }
           });
-          result.escrowAccount.forEach((account) =>
-            feePayerEscrowMap.delete(account)
-          );
-        } else if (result.state == "Game Initiated!") {
-          feePayerEscrowMap.set(result.escrowAccount[0], result.feePayer);
         }
         res.status(200);
       } catch (e) {
