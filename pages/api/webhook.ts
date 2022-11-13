@@ -10,10 +10,13 @@ export default async function handler(req, res) {
     body.forEach(async (data) => {
       try {
         let result = parseData(data);
-        if (result.state == "Game Completed!") {
+        if (
+          result.state == "Game Completed!" &&
+          result.escrowAccount.length == 2
+        ) {
           result.escrowAccount.forEach(async (account) => {
             const opponent = feePayerEscrowMap.get(account);
-            if (opponent !== result.feePayer) {
+            if (opponent != undefined && opponent !== result.feePayer) {
               await toDiscordWH(
                 result.state,
                 `${result.feePayer} rolled against ${opponent} and won ${result.winnings} SOL!`,
