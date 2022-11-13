@@ -1,66 +1,53 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import axios from "axios";
-import { RawData, DiscordResponse } from "../../types";
-const DISCORD_URL = process.env.DISCORD_WEBHOOK_URL;
+import { parseData } from "../../../helper/utils";
+const DISCORD_URL_WH = process.env.DISCORD_WEBHOOK_URL;
+let feePayerEscrowMap = new Map<string, string>();
 export default async function handler(req, res) {
   if (req.method == "POST") {
     console.log(req.body);
-    try {
-      let body: RawData = req.body[0];
-      let feeCollector = body.accountData.find(
-        (data) => data.account == "9RbPXewKbBqr6uNQhbzm3iejzpyCq5YucCCaSUSDZPQF"
-      );
-      let message;
-      if (feeCollector != undefined) {
-        message = `${body.feePayer} won ${
-          (feeCollector.nativeBalanceChange * 100) / 3000000000
-        } sol!`;
-        await toDiscord("Game Completed!", message, body.signature);
-      } else if (body.nativeTransfers.length > 0) {
-        let nativeTransfer = body.nativeTransfers[0];
-        if (nativeTransfer.amount == 100000000) {
-          message = `${nativeTransfer.fromUserAccount} bet 0.1 Sol!`;
-          await toDiscord("Game Initiated!", message, body.signature);
-        } else if (nativeTransfer.amount == 500000000) {
-          message = `${nativeTransfer.fromUserAccount} bet 0.5 Sol!`;
-          await toDiscord("Game Initiated!", message, body.signature);
-        } else if (nativeTransfer.amount == 1000000000) {
-          message = `${nativeTransfer.fromUserAccount} bet 1 Sol!`;
-          await toDiscord("Game Initiated!", message, body.signature);
-        } else if (nativeTransfer.amount == 5000000000) {
-          message = `${nativeTransfer.fromUserAccount} bet 5 Sol!`;
-          await toDiscord("Game Initiated!", message, body.signature);
-        } else {
-          message = "Probably some other transaction";
+    let body = req.body;
+    body.forEach(async (data) => {
+      try {
+        let result = parseData(data);
+        if (result.state == "Game Completed!") {
+          result.escrowAccount.forEach(async (account) => {
+            const opponent = feePayerEscrowMap.get(account);
+            if (opponent !== result.feePayer) {
+              await toDiscordWH(
+                result.state,
+                `${result.feePayer} rolled against ${opponent} and won ${result.winnings} SOL!`,
+                result.signature
+              );
+            }
+          });
+          result.escrowAccount.forEach((account) =>
+            feePayerEscrowMap.delete(account)
+          );
+        } else if (result.state == "Game Initiated!") {
+          feePayerEscrowMap.set(result.escrowAccount[0], result.feePayer);
         }
-      } else {
-        message = "Unable to parse transaction";
+        res.status(200);
+      } catch (e) {
+        res.status(500).send(e);
       }
-      res.status(200).json({ message: message });
-    } catch (e) {
-      res.status(500).send(e);
-    }
+    });
   } else {
     res.status(200).json({ name: "API GATEWAY for DICE DUEL stats" });
   }
 }
 
-async function toDiscord(title: string, message: any, signature: string) {
-  let response = {
-    title: title,
-    description: message,
-    signature: signature,
-  };
+async function toDiscordWH(state: string, message: any, signature: string) {
   await axios
-    .post(DISCORD_URL, {
+    .post(DISCORD_URL_WH, {
       embeds: [
         {
-          title: response.title,
-          description: response.description,
+          title: state,
+          description: message,
           fields: [
             {
               name: "Explorer",
-              value: `https://solana.fm/tx/${response.signature}`,
+              value: `https://solana.fm/tx/${signature}`,
             },
           ],
         },
