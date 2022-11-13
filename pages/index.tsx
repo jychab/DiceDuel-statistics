@@ -72,11 +72,11 @@ export default function Home() {
           );
         }
       });
-      const mostPlayed = [players.entries()].reduce((a, b) =>
+      const mostPlayed = [...players.entries()].reduce((a, b) =>
         b[1].gamesPlayed > a[1].gamesPlayed ? b : a
       );
 
-      const mostWin = [players.entries()].reduce((a, b) =>
+      const mostWin = [...players.entries()].reduce((a, b) =>
         b[1].amountWon > a[1].amountWon ? b : a
       );
       setStats({
