@@ -12,7 +12,7 @@ export function parseData(body) {
   if (feeCollector != undefined) {
     state = "Game Completed!";
     feeCollected = feeCollector.nativeBalanceChange / 1000000000;
-    winnings = (feeCollected * 100) / 3;
+    winnings = Math.round(((feeCollected * 100) / 3) * 100) / 100;
     escrowAccount = body.accountData
       .filter((data) => data.nativeBalanceChange < 0)
       .map((data) => data.account);
