@@ -22,8 +22,8 @@ export default function Home() {
       let result = [];
       let end = false;
       while (!end) {
-        setTimeout(async () => {
-          const url = `${apiURL}/${address}/${resource}${options}&before=${oldestTransaction}`;
+        const url = `${apiURL}/${address}/${resource}${options}&before=${oldestTransaction}`;
+        try {
           const data: [RawData] = (await axios.get(url)).data;
           oldestTransaction = data[data.length - 1].signature;
           for (const i in data) {
@@ -33,7 +33,10 @@ export default function Home() {
               break;
             }
           }
-        }, 100);
+        } catch (err) {
+          setTimeout(() => {}, 1000);
+          console.log(err);
+        }
       }
       (result as [RawData]).sort((a, b) => a.timestamp - b.timestamp);
       let feesCollected = 0;
