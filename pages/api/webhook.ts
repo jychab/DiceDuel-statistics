@@ -4,7 +4,7 @@ import { RawData, DiscordResponse } from "../../types";
 const DISCORD_URL = process.env.DISCORD_WEBHOOK_URL;
 export default async function handler(req, res) {
   if (req.method == "POST") {
-    console.log(req.body[0]);
+    console.log(req.body);
     try {
       let body: RawData = req.body[0];
       let feeCollector = body.accountData.find(
@@ -45,28 +45,31 @@ export default async function handler(req, res) {
   }
 }
 
-const postToDiscord = async (response: DiscordResponse) => {
-  await axios.post(DISCORD_URL, {
-    embeds: [
-      {
-        title: response.title,
-        description: response.description,
-        fields: [
-          {
-            name: "Explorer",
-            value: `https://solana.fm/tx/${response.signature}`,
-          },
-        ],
-      },
-    ],
-  });
-};
 async function toDiscord(title: string, message: any, signature: string) {
   let response = {
     title: title,
     description: message,
     signature: signature,
   };
-  console.log(response);
-  await postToDiscord(response);
+  await axios
+    .post(DISCORD_URL, {
+      embeds: [
+        {
+          title: response.title,
+          description: response.description,
+          fields: [
+            {
+              name: "Explorer",
+              value: `https://solana.fm/tx/${response.signature}`,
+            },
+          ],
+        },
+      ],
+    })
+    .then((response) => {
+      console.log(response);
+    })
+    .catch((err) => {
+      console.log(err);
+    });
 }
