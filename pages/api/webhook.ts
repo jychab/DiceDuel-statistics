@@ -1,5 +1,5 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import axios from "axios";
+import axios, { RawAxiosRequestHeaders } from "axios";
 import axiosRetry from "axios-retry";
 import { RawData } from "../../helper/types";
 import { parseData } from "../../helper/utils";
@@ -20,6 +20,16 @@ axiosRetry(axios, {
     // if retry condition is not specified, by default idempotent requests are retried
     return error.response.status === 429;
   },
+});
+axios.interceptors.response.use(undefined, (err) => {
+  // [ ... ]
+  const config = err.config;
+  // config.headers is possibly undefined
+  config.headers = JSON.parse(
+    JSON.stringify(config.headers || {})
+  ) as RawAxiosRequestHeaders;
+  // [ ... ]
+  return axios(config);
 });
 
 export default function handler(req, res) {
