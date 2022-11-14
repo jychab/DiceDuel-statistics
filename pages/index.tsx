@@ -15,7 +15,7 @@ export default function Home({
     feesCollected: feesCollected,
     gamesPlayed: gamesPlayed,
     mostPlayedPlayer: mostPlayedPlayer,
-    mostWinPlayer: mostPlayedPlayer,
+    mostWinPlayer: mostWinPlayer,
   });
 
   return (
