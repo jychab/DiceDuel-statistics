@@ -1,48 +1,97 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import axios from "axios";
+import axiosRetry from "axios-retry";
 import { RawData } from "../../helper/types";
 import { parseData } from "../../helper/utils";
+
 const DISCORD_URL_WH = process.env.DISCORD_WEBHOOK_URL;
 const apiURL = "https://api.helius.xyz/v0/addresses";
 const resource = "transactions";
 const options = `?api-key=${process.env.HELIUS_API_KEY}`;
-export default async function handler(req, res) {
+const address = process.env.PROGRAM_ID;
+
+axiosRetry(axios, {
+  retries: 3, // number of retries
+  retryDelay: (retryCount) => {
+    console.log(`retry attempt: ${retryCount}`);
+    return retryCount * 2000; // time interval between retries
+  },
+  retryCondition: (error) => {
+    // if retry condition is not specified, by default idempotent requests are retried
+    return error.response.status === 429;
+  },
+});
+
+export default function handler(req, res) {
   if (req.method == "POST") {
     console.log(req.body);
-    let body = req.body;
-    body.forEach(async (data) => {
-      try {
-        let result = parseData(data);
-        if (
-          result.state == "Game Completed!" &&
-          result.escrowAccount.length == 2
-        ) {
-          result.escrowAccount.forEach(async (account) => {
-            const url = `${apiURL}/${account}/${resource}${options}`;
-            const response: [RawData] = (await axios.get(url)).data;
-            let opponent = response[0].feePayer;
-            if (opponent !== result.feePayer) {
+    let body: [RawData] = req.body;
+    body.forEach((data) => {
+      let result = parseData(data);
+      if (
+        result.state == "Game Completed!" &&
+        result.escrowAccount.length == 2
+      ) {
+        result.escrowAccount.forEach(async (account) => {
+          const url = `${apiURL}/${account}/${resource}${options}`;
+          const transactions = await getEnrichedTransactions(url);
+          if (transactions != undefined && transactions.length > 0) {
+            let opponent = transactions[0].feePayer;
+            if (opponent != undefined && opponent != result.feePayer) {
               await toDiscordWH(
                 result.state,
                 `${result.feePayer} rolled against ${opponent} and won ${result.winnings} SOL!`,
                 result.signature
               );
             }
-          });
-        }
-        res.status(200);
-      } catch (e) {
-        res.status(500).send(e);
+          }
+        });
       }
+      res.status(200);
     });
-  } else {
-    res.status(200).json({ name: "API GATEWAY for DICE DUEL stats" });
+  } else if (req.method == "GET") {
+    res.status(200).send("API ENDPOINT");
   }
 }
 
+export async function getData(): Promise<[RawData]> {
+  let oldestTransaction = "";
+  let result = [];
+  let end = false;
+  while (!end) {
+    const url = `${apiURL}/${address}/${resource}${options}&before=${oldestTransaction}`;
+    const data = await getEnrichedTransactions(url);
+    if (data != undefined) {
+      oldestTransaction = data[data.length - 1].signature;
+      for (const index in data) {
+        result.push(data[index]);
+        if (Math.round(Date.now() / 1000) - data[index].timestamp > 86400) {
+          end = true;
+          break;
+        }
+      }
+    } else {
+      break;
+    }
+  }
+  (result as [RawData]).sort((a, b) => a.timestamp - b.timestamp);
+  return result as [RawData];
+}
+
+async function getEnrichedTransactions(url: string): Promise<[RawData] | any> {
+  let transactions: [RawData];
+  try {
+    transactions = (await axios.get(url)).data;
+    console.log(transactions.length);
+  } catch (err) {
+    console.log(err);
+  }
+  return transactions;
+}
+
 async function toDiscordWH(state: string, message: any, signature: string) {
-  await axios
-    .post(DISCORD_URL_WH, {
+  try {
+    await axios.post(DISCORD_URL_WH, {
       embeds: [
         {
           title: state,
@@ -55,11 +104,8 @@ async function toDiscordWH(state: string, message: any, signature: string) {
           ],
         },
       ],
-    })
-    .then((response) => {
-      console.log(response);
-    })
-    .catch((err) => {
-      console.log(err);
     });
+  } catch (err) {
+    console.log(err);
+  }
 }

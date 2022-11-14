@@ -1,4 +1,6 @@
-export function parseData(body) {
+import { RawData } from "./types";
+
+export function parseData(body: RawData) {
   let feeCollector = body.accountData.find(
     (data) => data.account == "9RbPXewKbBqr6uNQhbzm3iejzpyCq5YucCCaSUSDZPQF"
   );
@@ -30,7 +32,6 @@ export function parseData(body) {
     } else {
       state = "";
     }
-  } else {
   }
   return { state, signature, feeCollected, winnings, feePayer, escrowAccount };
 }
