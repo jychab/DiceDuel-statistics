@@ -11,7 +11,7 @@ export function parseData(body: RawData) {
   let feePayer = body.feePayer;
   let escrowAccount = [];
 
-  if (feeCollector != undefined) {
+  if (feeCollector != undefined && feeCollector.nativeBalanceChange > 0) {
     state = "Game Completed!";
     feeCollected = feeCollector.nativeBalanceChange / 1000000000;
     winnings = Math.round(((feeCollected * 100) / 3) * 100) / 100;

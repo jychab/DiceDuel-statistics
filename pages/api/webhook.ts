@@ -21,16 +21,6 @@ axiosRetry(axios, {
     return error.response.status === 429;
   },
 });
-axios.interceptors.response.use(undefined, (err) => {
-  // [ ... ]
-  const config = err.config;
-  // config.headers is possibly undefined
-  config.headers = JSON.parse(
-    JSON.stringify(config.headers || {})
-  ) as RawAxiosRequestHeaders;
-  // [ ... ]
-  return axios(config);
-});
 
 export default function handler(req, res) {
   if (req.method == "POST") {
@@ -44,7 +34,7 @@ export default function handler(req, res) {
       ) {
         result.escrowAccount.forEach(async (account) => {
           const url = `${apiURL}/${account}/${resource}${options}`;
-          const transactions = await getEnrichedTransactions(url);
+          const transactions = await getEnrichedTransactions(url); // get fee payer from the escrow account
           if (transactions != undefined && transactions.length > 0) {
             let opponent = transactions[0].feePayer;
             if (opponent != undefined && opponent != result.feePayer) {
@@ -63,7 +53,7 @@ export default function handler(req, res) {
     res.status(200).send("API ENDPOINT");
   }
 }
-
+//get last 24hrs playing data
 export async function getData(): Promise<[RawData]> {
   let oldestTransaction = "";
   let result = [];
@@ -91,8 +81,8 @@ export async function getData(): Promise<[RawData]> {
 async function getEnrichedTransactions(url: string): Promise<[RawData] | any> {
   let transactions: [RawData];
   try {
-    transactions = (await axios.get(url)).data;
-    console.log(transactions.length);
+    const response = await axios.get(url);
+    transactions = response.data;
   } catch (err) {
     console.log(err);
   }
